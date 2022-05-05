@@ -206,31 +206,52 @@
     const _p = location.pathname;
     const _ps = _p.split('/');
     const _h = location.href;
-    var _$s = (s) => typeof s === 'string' || s instanceof String; //is_string
-    var _hp = (p=3) => (ll = location.hostname.split('.')) && ll[ll.length-p];//get_subdomain (host part)
+    /** Checks if a given object is a string */
+    var _$s = (s) => typeof s === 'string' || s instanceof String;
+    /** Gets the subdomain (host part) of the site */
+    var _hp = (p=3) => (ll = location.hostname.split('.')) && ll[ll.length-p];
+    /** Gets the element by a given selector */
     var _t = (s) => document.querySelector(s);
+    /** Tests if the path of the site matches the given regex */
     var _c = (r) => r.test(_p);
+    /** Redirects to link, if it exists */
     var _go = (s) => s && window.location.replace(s);
+    /** Checks if a string is part of the hostname */
     var _hst = (s) => location.hostname.includes(s);
+    /** Sets the color for the bottom bar, if it's not set */
     var clr = (c, f) => (sitecolor = (f || sitecolor == '#333') ? c : sitecolor);
+    /** Sets the language for translating and searching, if it's not set */
     var lng = (c, f) => (lang = (f || lang == 'ru') ? c : lang);
+    /** Gets the last part of a path */
     var lastPathPart = () => _ps.filter(Boolean).slice(-1)[0];
+    /** Gets the href attribute (or any other attribute) of a selected element, if it exists */
     var bySel = (s, a = 'href') => _t(s)?.getAttribute(a);
+    /** Removes the auxiliary words of the textcontent of: the header if no parameter is given; a element matching the given selector; the first element, if the parameter is an array*/
     var getHeader = (h) => removeAuxiliary(h ? (Array.isArray(h) ? h[0] : textContent(h)) : textContent('h1'));
+    /** Get an array of the textcontent of: elements with the tag-class if no parameter is given; elements matching the given selector; or the first element, if the parameter is an array*/
     var getTags = (t) => t ? (Array.isArray(t) ? t[0] : allTexts(t)) : allTexts('.tag');
+    /** Replaces in a string all occurrences of the first element of an arraygroup with the second */
     var mulreplace = (str, a) => a.forEach((v) => (str = str.replace(v[0], v[1]))) || str;
     var wiki = (l = 0, p = 2, w = true) => 'https://' + (_$s(l) ? l : _ps[l]) + '.wikipedia.org' + (w ? '/wiki/' : '') + (_$s(p) ? p : _ps[p]);
     var prepareSearch = (h, t, s) => promtRedirect(sitecolor, toSearch(h + ' ' + getTags(t).join(' ').replace(/\s+/g, ' '), s), !badCode && allTexts('pre code'), !badImgs && [...new Set([...allAttr('img[src*="://i.stack.imgur.com/"]', 'src'), ...allAttr('a[href*="://i.stack.imgur.com/"]', 'href')])], s);
     var transTags = async (t) => (await yaTranslate(allTexts(t).join(' '), lang)).split(' ');
     var toSearch = (s, site, i) => (s = dropMarks(s) && s ? `https://google.com/search?q=` + ((site && Array.isArray(site)) ? (site.length < 1 ? '' : `site%3A` + site.join('+OR+site%3A') + `+`) : `site%3Astackexchange.com+OR+site%3Astackoverflow.com+`) + encodeURIComponent(s) + (i ? '&tbm=isch' : '') : null);
+    /** Gets the textcontent of a selected element, if it exists, or the first element, if the parameter is an array */
     var textContent = (s) => Array.isArray(s) ? s[0] : _t(s)?.textContent.trim();
     var byNumber = (s, radix) => (s = parseInt(s, radix)) && s > 0 ? _go('https://stackoverflow.com/questions/' + s) : null;
+    /** Adds surrounding spaces and make the string lowercase, if it exists */
     var normalize = (s) => s && ' ' + s.toLowerCase() + ' ';
+    /** Pipes multiple functions after each other */
     var pipe = (...fns) => x => fns.reduce((v, f) => f(v), x);
-    var all = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+    /** Creates an array of the elements matched by given selector */
+    var all = (s) => [...document.querySelectorAll(s)];
+    /** Creates an array of the textcontent of all elements matched by given selector */
     var allTexts = (s) => all(s).map(a => a.textContent.trim());
+    /** Creates an array of the attributes of all elements matched by given selector */
     var allAttr = (s, t) => all(s).map(a => a[t].trim());
+    /** Gets the attribute of a given element, if it exists, and get a specific text part by regex or replace it with anoter text */
     var getAttr = (t, a, r, s = '$1') => (t.hasAttribute(a)) && t.getAttribute(a).replace(r, s);
+    /** Removes marks of a string, if it exists */
     var dropMarks = (s) => s && s.replace(/\[(на удержании|on hold|duplikować|duplicado|duplicar|duplikat|dublicate|duplicate|дубликат|закрыто|закрытый|closed|geschlossen|zamknięte|cerrado|重复|repeat)\]\s*$/i, '').trim();
 
     function _tc (s) {
@@ -267,7 +288,7 @@
         scriptElm.appendChild(inlineCode);
         document.body.appendChild(scriptElm);
     }
-
+    /** Replaces different quote variants, optionally removes them, replaces various control characters */
     function filterText(text, rmquotes) {
         var out = text.replace(/(\u02B9|\u0374|\u2018|\u201A|\u2039|\u203A|\u201B|\u2019)+/g, '\'').replace(/(\u00AB|\u00BB|\u201E|\u201C|\u201F|\u201D|\u2E42)+/g, '"');
         return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/ /g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
@@ -356,6 +377,7 @@ a{
     }
 
     var auxiliaryRe = null;
+    /** Removes auxiliary words of a given string */
     function removeAuxiliary(s) {
         return s && s.replace(auxiliaryRe || (auxiliaryRe = new RegExp([
             'a', 'an', 'the',
