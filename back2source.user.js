@@ -233,12 +233,17 @@
     var getTags = (t) => t ? (Array.isArray(t) ? t[0] : allTexts(t)) : allTexts('.tag');
     /** Replaces in a string all occurrences of the first element of an arraygroup with the second */
     var mulreplace = (str, a) => a.forEach((v) => (str = str.replace(v[0], v[1]))) || str;
+    /** Creates a Wikipedia link with language and article text or the number of the part in the website url, optionally adding the /wiki/ part */
     var wiki = (l = 0, p = 2, w = true) => 'https://' + (_$s(l) ? l : _ps[l]) + '.wikipedia.org' + (w ? '/wiki/' : '') + (_$s(p) ? p : _ps[p]);
+    /** Creates the bottom bar with the text, the code parts and images to search for */
     var prepareSearch = (h, t, s) => promtRedirect(sitecolor, toSearch(h + ' ' + getTags(t).join(' ').replace(/\s+/g, ' '), s), !badCode && allTexts('pre code'), !badImgs && [...new Set([...allAttr('img[src*="://i.stack.imgur.com/"]', 'src'), ...allAttr('a[href*="://i.stack.imgur.com/"]', 'href')])], s);
+    /** Translates a given array of tags */
     var transTags = async (t) => (await yaTranslate(allTexts(t).join(' '), lang)).split(' ');
+    /** Creates the Google search link with the slightly modified text to search for, the sites to search on, optionally searching for images */
     var toSearch = (s, site, i) => (s = dropMarks(s) && s ? `https://google.com/search?q=` + ((site && Array.isArray(site)) ? (site.length < 1 ? '' : `site%3A` + site.join('+OR+site%3A') + `+`) : `site%3Astackexchange.com+OR+site%3Astackoverflow.com+`) + encodeURIComponent(s) + (i ? '&tbm=isch' : '') : null);
     /** Gets the textcontent of a selected element, if it exists, or the first element, if the parameter is an array */
     var textContent = (s) => Array.isArray(s) ? s[0] : _t(s)?.textContent.trim();
+    /** Creates StackOverflow link by article id, optionally mofifying it before */
     var byNumber = (s, radix) => (s = parseInt(s, radix)) && s > 0 ? _go('https://stackoverflow.com/questions/' + s) : null;
     /** Adds surrounding spaces and make the string lowercase, if it exists */
     var normalize = (s) => s && ' ' + s.toLowerCase() + ' ';
@@ -255,12 +260,14 @@
     /** Removes marks of a string, if it exists */
     var dropMarks = (s) => s && s.replace(/\[(на удержании|on hold|duplikować|duplicado|duplicar|duplikat|dublicate|duplicate|дубликат|закрыто|закрытый|closed|geschlossen|zamknięte|cerrado|重复|repeat)\]\s*$/i, '').trim();
 
+    /** Gets the first link by a given selector, that links to an stack exchenge site */
     function _tc (s) {
         var allw = ['stackoverflow.com/q','superuser.com/q','mathoverflow.net/q','askubuntu.com/q','stackexchange.com/q'];
         var nods = all(s);
         for (var nod in nods) for (var pt in allw) if(nods[nod]?.href?.indexOf(allw[pt])>=0) return nods[nod].href;
     }
 
+    /** Gets the image url with the site where the image is from, optionally with by selector and cutting the path */
     function urlByImg(v, s = 'img[src*="/images/content/"]', n = 3) {
         var p = _t(s)?.src;
         if (!p) return;
@@ -268,13 +275,16 @@
         return l && (v + l);
     }
 
+    /** Gets the database with redirects */
     var db = JSON.parse(GM_getValue('b2s') || '{}');
     for (var y in db) if (location.href == db[y][0]) return _go(db[y][1]);
 
+    /** Gets a redirect for the opened site */
     var dfgdr = fetch(`https://api.zcxv.icu/b2s.php?q=get&url=${encodeURIComponent(_h)}`, { credentials: 'omit' })
         .then(r => r.json())
         .then(r => r.res && r.response && _go(r.response));
 
+    /** Allows the user to specify a url to which the opened site should be redirected */
     GM_registerMenuCommand('Redirect', () => {
         var re = prompt('Enter source url:');
         var dfgdr = re && fetch(
@@ -283,6 +293,7 @@
             });
     });
 
+    /** Adds the given JavaScript code as inline code to the opened site */
     function addJS(code){
         var scriptElm = document.createElement('script');
         var inlineCode = document.createTextNode(code);
@@ -295,6 +306,7 @@
         return (rmquotes ? out.replace(/(\'|")+/g, ' ') : out).replace(/ /g, ' ').replace(/(\r|\n)+/g, ' ').replace(/\s\s+/g, ' ').trim().replace(/\.$/, '').trim();
     }
 
+    /** Creates the bottom bar to search for a question */
     async function promtRedirect(bgcolor, link, codef, imgf, site) {
         const dialog = document.createElement('div');
         try {
@@ -348,6 +360,7 @@ a{
     }
 
     //https://yandex.com/dev/translate/doc/dg/concepts/api-overview.html
+    /** Translates a slightly modified text with Yandex from one language to english or any other given language */
     async function yaTranslate(q, sourceLang, targetLang) {
         q = dropMarks(q);
         if (!q) return null;
@@ -396,6 +409,7 @@ a{
     }
 
     /**
+     * Searches a text with the Stack Exchange API, optionally with a timeframe and the tags
      * @param {string} q
      * @param {Date} [before]
      * @param {Date} [after]
@@ -415,6 +429,7 @@ a{
     }
 
     /**
+     * Takes the slightly modified text of the header or a given selector, optionally translates it, tries to find it per API and otherwise creates the bottom bar to search for
      * @param {string|array} [h] - header selector (def: 'h1')
      * @param {string|array} [t] - tags selector (def: '.tag')
      * @param {string} [l] - lang (def: none)
@@ -424,7 +439,8 @@ a{
         var sbh = filterText((l == 'en') ? textContent(h) : await yaTranslate(getHeader(h), l), 1);
         return sbh && (await findByApi(sbh, _, _, getTags(t)) || prepareSearch(sbh, t, s));
     }
-
+    
+    /** Gets the text to search for from a part of the path, tries to find it per API and otherwise creates the bottom bar to search for */
     async function byPath(pos, s) {
         var fbp = _ps[pos].replace(/[-+ ]/g, ' ').replace(/(-closed|-duplicate)?(\.html)?$/, '');
         return (await findByApi(fbp)) || prepareSearch(fbp, '', s);
